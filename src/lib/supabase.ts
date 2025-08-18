@@ -7,8 +7,10 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 console.log('Environment check:', {
   hasUrl: !!supabaseUrl,
   hasKey: !!supabaseAnonKey,
-  urlPrefix: supabaseUrl?.substring(0, 20),
-  keyPrefix: supabaseAnonKey?.substring(0, 20)
+  fullUrl: supabaseUrl,
+  fullKey: supabaseAnonKey,
+  urlLength: supabaseUrl?.length,
+  keyLength: supabaseAnonKey?.length
 });
 
 if (!supabaseUrl || !supabaseAnonKey) {
