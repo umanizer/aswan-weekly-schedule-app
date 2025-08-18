@@ -3,18 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// 環境変数の存在確認（デバッグ用）
-console.log('Environment check:', {
-  hasUrl: !!supabaseUrl,
-  hasKey: !!supabaseAnonKey,
-  fullUrl: supabaseUrl,
-  fullKey: supabaseAnonKey,
-  urlLength: supabaseUrl?.length,
-  keyLength: supabaseAnonKey?.length
-});
-
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing env vars:', { supabaseUrl, supabaseAnonKey });
   throw new Error('Missing required Supabase environment variables')
 }
 
