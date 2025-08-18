@@ -4,8 +4,46 @@
       "Bash(npx create-next-app:*)",
       "Bash(mkdir:*)",
       "Bash(mv:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__get_project",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__get_anon_key",
+      "mcp__supabase__execute_sql",
+      "Bash(rm:*)",
+      "Bash(pkill:*)",
+      "Bash(taskkill:*)",
+      "Bash(TASKKILL /F /IM node.exe)",
+      "Bash(npx tsc:*)",
+      "WebSearch",
+      "WebFetch(domain:resend.com)",
+      "mcp__supabase__search_docs",
+      "mcp__supabase__deploy_edge_function",
+      "Bash(npx kill-port:*)",
+      "mcp__supabase__get_logs",
+      "mcp__supabase__list_edge_functions",
+      "Bash(npx supabase:*)",
+      "Bash(TASKKILL /F /PID 16224)",
+      "Bash(cmd /c:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(TASKKILL /F /PID 15496)",
+      "Bash(tasklist:*)",
+      "Bash(TASKKILL /F /PID 7332)",
+      "Bash(npm test)",
+      "Bash(npm test:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run start:*)",
+      "Bash(git add:*)"
     ],
-    "deny": []
+    "deny": [],
+    "additionalDirectories": [
+      "C:\\d C:\\Users\\MWork-User\\Desktop\\div"
+    ]
   }
 }

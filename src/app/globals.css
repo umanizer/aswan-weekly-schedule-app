@@ -1,27 +1,126 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import '../styles/animations.css';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic Medium', 'Meiryo', sans-serif;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* ボタンコンポーネント */
+  .btn {
+    @apply inline-flex items-center px-4 py-2 rounded-sm font-medium text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply btn bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700 focus:ring-blue-500;
+  }
+  
+  .btn-secondary {
+    @apply btn bg-white text-blue-600 border border-blue-500 hover:bg-blue-50 focus:ring-blue-500;
+  }
+  
+  .btn-danger {
+    @apply btn bg-red-500 text-white hover:bg-red-600 active:bg-red-700 focus:ring-red-500;
+  }
+  
+  .btn-ghost {
+    @apply btn text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-gray-500;
+  }
+  
+  /* 入力欄コンポーネント */
+  .input {
+    @apply block w-full px-3 py-2 border border-gray-200 rounded-sm text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200;
+  }
+  
+  .input-error {
+    @apply input border-red-300 focus:ring-red-500 focus:border-red-500;
+  }
+  
+  /* カードコンポーネント */
+  .card {
+    @apply bg-white rounded-md shadow-sm border-0;
+  }
+  
+  .card-header {
+    @apply px-4 py-3 border-b border-gray-100;
+  }
+  
+  .card-body {
+    @apply p-4;
+  }
+  
+  /* 予定カード */
+  .schedule-card {
+    @apply card p-3 mb-2 cursor-pointer hover:shadow-md transition-shadow duration-200;
+  }
+  
+  .schedule-card-important {
+    @apply schedule-card border-l-4 border-red-500;
+  }
+  
+  .schedule-card-accompanied {
+    @apply schedule-card border-l-4 border-amber-500;
+  }
+  
+  .schedule-card-part-timer {
+    @apply schedule-card border-l-4 border-emerald-500;
+  }
+  
+  .schedule-card-normal {
+    @apply schedule-card border-l-4 border-gray-300;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  
+  /* カスタムスクロールバー */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(156 163 175) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(156 163 175);
+    border-radius: 3px;
+  }
+  
+  /* アニメーション */
+  .fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* モバイル最適化 */
+  .touch-manipulation {
+    touch-action: manipulation;
   }
 }
