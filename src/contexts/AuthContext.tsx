@@ -73,14 +73,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('🔍 [DEBUG] Using basic auth data safely');
 
         // メタデータまたはemailから表示名を決定
-        const displayName = session.user.user_metadata?.full_name ||
-                           session.user.user_metadata?.name ||
-                           session.user.email?.split('@')[0] ||
-                           'ユーザー';
+        let displayName = session.user.user_metadata?.full_name ||
+                         session.user.user_metadata?.name ||
+                         session.user.email?.split('@')[0] ||
+                         'ユーザー';
 
         // 🔧 管理者の手動識別（API修復まで）
         const isKnownAdmin = session.user.email === 'mworkplanning@yahoo.co.jp' ||
                            displayName === '河本典明';
+
+        // 🔧 管理者の正しい表示名を設定
+        if (session.user.email === 'mworkplanning@yahoo.co.jp') {
+          displayName = '河本典明';
+        }
 
         const userRole = isKnownAdmin ? 'admin' : (session.user.user_metadata?.role || 'user');
 
@@ -122,14 +127,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSupabaseUser(supabaseUser);
 
         // 🔧 安全な基本認証データのみ使用（DBアクセス問題のため）
-        const displayName = supabaseUser.user_metadata?.full_name ||
-                           supabaseUser.user_metadata?.name ||
-                           supabaseUser.email?.split('@')[0] ||
-                           'ユーザー';
+        let displayName = supabaseUser.user_metadata?.full_name ||
+                         supabaseUser.user_metadata?.name ||
+                         supabaseUser.email?.split('@')[0] ||
+                         'ユーザー';
 
         // 🔧 管理者の手動識別（API修復まで）
         const isKnownAdmin = supabaseUser.email === 'mworkplanning@yahoo.co.jp' ||
                            displayName === '河本典明';
+
+        // 🔧 管理者の正しい表示名を設定
+        if (supabaseUser.email === 'mworkplanning@yahoo.co.jp') {
+          displayName = '河本典明';
+        }
 
         const userRole = isKnownAdmin ? 'admin' : (supabaseUser.user_metadata?.role || 'user');
 
