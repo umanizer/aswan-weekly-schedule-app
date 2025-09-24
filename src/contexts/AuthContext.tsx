@@ -52,6 +52,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSupabaseUser(null);
         setUser(null);
         setLoading(false);
+
+        // 強制的にログイン画面にリダイレクト
+        if (typeof window !== 'undefined') {
+          console.log('🔍 [DEBUG] Redirecting to login due to session expired');
+          window.location.href = '/login';
+        }
         return;
       }
 
@@ -83,8 +89,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSupabaseUser(supabaseUser);
         await fetchUserProfile(supabaseUser.id);
       } else {
-        console.log('🔍 [DEBUG] No user found, setting loading to false');
+        console.log('🔍 [DEBUG] No user found, setting loading to false and redirecting to login');
         setLoading(false);
+
+        // ユーザーがいない場合はログインページにリダイレクト
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
       }
     } catch (error) {
       console.error('🔍 [DEBUG] Error in getInitialUser:', error);
