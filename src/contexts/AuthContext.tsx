@@ -68,7 +68,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || (session?.user && !user)) {
         console.log('Setting user from auth state change');
         setSupabaseUser(session.user);
-        await fetchUserProfile(session.user.id);
+
+        // 🔧 一時的にプロファイル取得をスキップして基本認証のみで動作
+        console.log('🔍 [DEBUG] Skipping fetchUserProfile temporarily - using basic auth data');
+        setUser({
+          id: session.user.id,
+          full_name: session.user.user_metadata?.full_name || session.user.email || 'ユーザー',
+          email: session.user.email || '',
+          role: 'user', // 一時的にuserとして設定
+          created_at: session.user.created_at || new Date().toISOString(),
+          updated_at: session.user.updated_at || new Date().toISOString()
+        });
+        setLoading(false);
+
+        // await fetchUserProfile(session.user.id); // 一時的にコメントアウト
       }
 
       setLoading(false);
@@ -85,9 +98,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('🔍 [DEBUG] getUser result:', supabaseUser ? 'User found' : 'No user');
 
       if (supabaseUser) {
-        console.log('🔍 [DEBUG] Setting supabase user and fetching profile...');
+        console.log('🔍 [DEBUG] Setting supabase user - using basic auth data');
         setSupabaseUser(supabaseUser);
-        await fetchUserProfile(supabaseUser.id);
+
+        // 🔧 一時的にプロファイル取得をスキップ
+        setUser({
+          id: supabaseUser.id,
+          full_name: supabaseUser.user_metadata?.full_name || supabaseUser.email || 'ユーザー',
+          email: supabaseUser.email || '',
+          role: 'user', // 一時的にuserとして設定
+          created_at: supabaseUser.created_at || new Date().toISOString(),
+          updated_at: supabaseUser.updated_at || new Date().toISOString()
+        });
+        setLoading(false);
+
+        // await fetchUserProfile(supabaseUser.id); // 一時的にコメントアウト
       } else {
         console.log('🔍 [DEBUG] No user found, setting loading to false');
         setLoading(false);
