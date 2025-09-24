@@ -69,19 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Setting user from auth state change');
         setSupabaseUser(session.user);
 
-        // 🔧 一時的にプロファイル取得をスキップして基本認証のみで動作
-        console.log('🔍 [DEBUG] Skipping fetchUserProfile temporarily - using basic auth data');
-        setUser({
-          id: session.user.id,
-          full_name: session.user.user_metadata?.full_name || session.user.email || 'ユーザー',
-          email: session.user.email || '',
-          role: 'user', // 一時的にuserとして設定
-          created_at: session.user.created_at || new Date().toISOString(),
-          updated_at: session.user.updated_at || new Date().toISOString()
-        });
-        setLoading(false);
-
-        // await fetchUserProfile(session.user.id); // 一時的にコメントアウト
+        // 🔧 ユーザープロファイル取得を復活
+        console.log('🔍 [DEBUG] Fetching user profile...');
+        await fetchUserProfile(session.user.id);
       }
 
       setLoading(false);
@@ -101,18 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('🔍 [DEBUG] Setting supabase user - using basic auth data');
         setSupabaseUser(supabaseUser);
 
-        // 🔧 一時的にプロファイル取得をスキップ
-        setUser({
-          id: supabaseUser.id,
-          full_name: supabaseUser.user_metadata?.full_name || supabaseUser.email || 'ユーザー',
-          email: supabaseUser.email || '',
-          role: 'user', // 一時的にuserとして設定
-          created_at: supabaseUser.created_at || new Date().toISOString(),
-          updated_at: supabaseUser.updated_at || new Date().toISOString()
-        });
-        setLoading(false);
-
-        // await fetchUserProfile(supabaseUser.id); // 一時的にコメントアウト
+        // 🔧 ユーザープロファイル取得を復活
+        await fetchUserProfile(supabaseUser.id);
       } else {
         console.log('🔍 [DEBUG] No user found, setting loading to false');
         setLoading(false);
@@ -139,6 +119,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.log('🔍 [DEBUG] Starting fetchUserProfile for:', userId);
+
+      // 🔧 代替案：APIエンドポイント経由でユーザー情報取得
+      try {
+        const response = await fetch('/api/users/profile', {
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          console.log('🔍 [DEBUG] User profile loaded via API:', userData.full_name);
+          setUser({
+            id: userData.id,
+            full_name: userData.full_name,
+            email: userData.email,
+            role: userData.role,
+            created_at: userData.created_at,
+            updated_at: userData.updated_at
+          });
+          setLoading(false);
+          return;
+        }
+
+        console.log('🔍 [DEBUG] API profile fetch failed, falling back to direct query');
+      } catch (apiError) {
+        console.log('🔍 [DEBUG] API approach failed, using direct database query');
+      }
 
       // セッションの有効性を確認
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
