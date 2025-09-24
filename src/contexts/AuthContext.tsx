@@ -127,9 +127,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // タイムアウトを追加
+      // タイムアウトを追加（3秒に短縮）
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
+        setTimeout(() => reject(new Error('Request timeout')), 3000)
       );
 
       // ユーザープロフィールを取得
