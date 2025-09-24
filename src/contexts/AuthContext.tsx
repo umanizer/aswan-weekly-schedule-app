@@ -98,26 +98,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await supabase.auth.signOut();
         setUser(null);
         setSupabaseUser(null);
+        setLoading(false); // 強制的にloading状態を解除
         return;
       }
 
+      // タイムアウトを追加
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
+
       // ユーザープロフィールを取得
-      const { data, error } = await supabase
+      const profilePromise = supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
+
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise]);
 
       if (error) {
         console.error('Error fetching user profile:', error);
         console.error('Error details:', { message: error.message, details: error.details, hint: error.hint });
 
         // ユーザーが見つからない場合、または認証エラーの場合
-        if (error.code === 'PGRST116' || error.message?.includes('JWT')) {
-          console.log('User not found or auth error, signing out...');
+        if (error.code === 'PGRST116' || error.message?.includes('JWT') || error.message === 'Request timeout') {
+          console.log('User not found, auth error, or timeout - signing out...');
           await supabase.auth.signOut();
           setUser(null);
           setSupabaseUser(null);
+          setLoading(false); // 強制的にloading状態を解除
         }
         return;
       }
@@ -140,6 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await supabase.auth.signOut();
       setUser(null);
       setSupabaseUser(null);
+      setLoading(false); // 強制的にloading状態を解除
     }
   };
 
