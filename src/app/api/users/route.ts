@@ -22,38 +22,63 @@ const supabase = createClient(
 
 // 管理者権限チェック（セキュア版）
 async function checkAdminAuth(request: NextRequest) {
+  console.log('=== Admin Auth Check Started ===');
+
   const authHeader = request.headers.get('authorization');
   if (!authHeader) {
+    console.log('No authorization header found');
     return { isAdmin: false, userId: null };
   }
 
   const token = authHeader.replace('Bearer ', '');
-  
+  console.log('Token extracted, length:', token.length);
+
   // 無効なトークンの場合は拒否
   if (!token || token === 'null' || token === 'undefined') {
+    console.log('Invalid token:', token);
     return { isAdmin: false, userId: null };
   }
 
   try {
+    console.log('Getting user from token...');
     const { data: { user }, error } = await supabase.auth.getUser(token);
-    
-    if (error || !user) {
+
+    if (error) {
+      console.error('Auth.getUser error:', error);
       return { isAdmin: false, userId: null };
     }
 
-    // ユーザーの役割を確認
-    const { data: userProfile, error: profileError } = await supabase
+    if (!user) {
+      console.log('No user found from token');
+      return { isAdmin: false, userId: null };
+    }
+
+    console.log('User found:', user.id);
+
+    // ユーザーの役割を確認（Service Role使用）
+    console.log('Checking user role in database...');
+    const { data: userProfile, error: profileError } = await supabaseAdmin
       .from('users')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (profileError || !userProfile) {
+    if (profileError) {
+      console.error('Profile query error:', profileError);
       return { isAdmin: false, userId: user.id };
     }
 
+    if (!userProfile) {
+      console.log('No user profile found');
+      return { isAdmin: false, userId: user.id };
+    }
+
+    console.log('User role:', userProfile.role);
+    const isAdmin = userProfile.role === 'admin';
+    console.log('Is admin:', isAdmin);
+
     return {
-      isAdmin: userProfile.role === 'admin',
+      isAdmin: isAdmin,
       userId: user.id
     };
   } catch (error) {
@@ -64,22 +89,45 @@ async function checkAdminAuth(request: NextRequest) {
 
 // GET: 全ユーザー取得
 export async function GET(request: NextRequest) {
-  const { isAdmin } = await checkAdminAuth(request);
-  
+  console.log('=== GET /api/users ===');
+
+  // 環境変数の確認
+  const hasSupabaseUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const hasAnonKey = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const hasServiceRoleKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  console.log('Environment check:', {
+    hasSupabaseUrl,
+    hasAnonKey,
+    hasServiceRoleKey
+  });
+
+  if (!hasSupabaseUrl || !hasAnonKey || !hasServiceRoleKey) {
+    console.error('Missing environment variables');
+    return NextResponse.json({ error: '環境設定が不完全です' }, { status: 500 });
+  }
+
+  const { isAdmin, userId } = await checkAdminAuth(request);
+
   if (!isAdmin) {
+    console.log('Access denied - not admin. User ID:', userId);
     return NextResponse.json({ error: '管理者権限が必要です' }, { status: 403 });
   }
 
+  console.log('Admin access confirmed, fetching users...');
+
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('users')
       .select('id, full_name, email, role, created_at, updated_at')
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('Database query error:', error);
       throw error;
     }
 
+    console.log('Users fetched from database, count:', data?.length || 0);
     return NextResponse.json({ data: data || [] });
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -121,7 +169,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // 2. usersテーブルにプロフィール情報を追加
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profileData, error: profileError } = await supabaseAdmin
         .from('users')
         .insert([{
           id: authUser.user.id,
@@ -175,7 +223,7 @@ export async function PUT(request: NextRequest) {
   try {
     const { userId, updates } = await request.json();
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('users')
       .update(updates)
       .eq('id', userId)
@@ -214,7 +262,7 @@ export async function DELETE(request: NextRequest) {
     console.log('Deleting user:', userId);
 
     // 1. まずusersテーブルから削除
-    const { error: profileError } = await supabase
+    const { error: profileError } = await supabaseAdmin
       .from('users')
       .delete()
       .eq('id', userId);

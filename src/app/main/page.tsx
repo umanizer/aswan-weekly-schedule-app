@@ -111,7 +111,7 @@ const SHIPPING_COMPANIES = [
 ];
 
 export default function MainPage() {
-  const { user, supabaseUser, loading: authLoading, isAdmin, signOut } = useAuth();
+  const { user, supabaseUser, loading: authLoading, isAdmin, signOut, checkSession } = useAuth();
   const router = useRouter();
   
   // 認証チェック：未認証ユーザーはログイン画面へリダイレクト
@@ -133,6 +133,22 @@ export default function MainPage() {
     }
   }, [user]);
 
+  // 定期的なセッションチェック（5分ごと）
+  useEffect(() => {
+    if (user) {
+      const interval = setInterval(async () => {
+        console.log('Performing periodic session check...');
+        const isValid = await checkSession();
+        if (!isValid) {
+          console.log('Session invalid, redirecting to login...');
+          router.push('/login');
+        }
+      }, 5 * 60 * 1000); // 5分
+
+      return () => clearInterval(interval);
+    }
+  }, [user, checkSession, router]);
+
   const loadTasks = async () => {
     setTasksLoading(true);
     try {
@@ -140,6 +156,16 @@ export default function MainPage() {
       if (error) {
         console.error('Tasks loading error:', error);
       } else {
+        console.log('Tasks loaded successfully:', data.length, 'tasks');
+        // 最初のタスクのユーザー情報をデバッグ
+        if (data.length > 0) {
+          console.log('First task user info:', {
+            user_id: data[0].user_id,
+            users: data[0].users
+          });
+          console.log('First task users object details:', JSON.stringify(data[0].users, null, 2));
+          console.log('Full first task data:', JSON.stringify(data[0], null, 2));
+        }
         setTasks(data);
       }
     } catch (error) {
@@ -195,33 +221,26 @@ export default function MainPage() {
     setIsNewTaskModalOpen(true);
   };
 
-  // 日付と時刻を結合してISO文字列にする関数
+  // 日付と時刻を結合してISO文字列にする関数（日本時間で処理）
   const combineDateTime = (date: Date | null, time: string): string => {
     if (!date || !time) {
       return new Date().toISOString();
     }
-    
-    console.log('combineDateTime input:', { 
-      date: date.toISOString(), 
-      time: time,
-      timeType: typeof time,
-      timeLength: time.length 
-    });
-    
+
     const [hours, minutes] = time.split(':').map(Number);
-    
-    // 日本時間での年月日を取得（ローカル時刻として）
+
+    // 日本時間での日付を正確に処理
+    // ローカルタイムゾーンの影響を受けないよう、直接日本時間で作成
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const hour = String(hours).padStart(2, '0');
     const minute = String(minutes).padStart(2, '0');
-    
-    // 日本時間として直接文字列を作成し、UTC変換は行わない
-    // PostgreSQLがタイムゾーンを正しく処理する
+
+    // 日本時間（JST）として作成
     const result = `${year}-${month}-${day}T${hour}:${minute}:00+09:00`;
-    
-    console.log('combineDateTime result:', result);
+
+    console.log('combineDateTime:', { input: { date: date.toDateString(), time }, output: result });
     return result;
   };
 
@@ -429,7 +448,9 @@ export default function MainPage() {
       startTime: formData.get('startTime'),
       endTime: formData.get('endTime'),
       startTimeValue: startTimeValue,
-      endTimeValue: endTimeValue
+      endTimeValue: endTimeValue,
+      user_id: user.id,
+      user_full_name: user.full_name
     });
     
     const newTask: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'users'> = {
@@ -522,9 +543,22 @@ export default function MainPage() {
       setHasPartTimer(selectedTask.has_part_timer || false);
       setPartTimerCount(selectedTask.part_timer_count || 1);
       
-      // 時間の初期値を設定
-      const taskStartTime = new Date(selectedTask.start_datetime).toLocaleTimeString('sv-SE', { timeZone: 'Asia/Tokyo' }).slice(0, 5);
-      const taskEndTime = selectedTask.end_datetime ? new Date(selectedTask.end_datetime).toLocaleTimeString('sv-SE', { timeZone: 'Asia/Tokyo' }).slice(0, 5) : '';
+      // 時間の初期値を設定（日本時間で正確に取得）
+      const taskStartDate = new Date(selectedTask.start_datetime);
+      const taskEndDate = selectedTask.end_datetime ? new Date(selectedTask.end_datetime) : null;
+
+      const taskStartTime = taskStartDate.toLocaleTimeString('ja-JP', {
+        timeZone: 'Asia/Tokyo',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      const taskEndTime = taskEndDate ? taskEndDate.toLocaleTimeString('ja-JP', {
+        timeZone: 'Asia/Tokyo',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }) : '';
       setStartTime(taskStartTime);
       setEndTime(taskEndTime);
       
@@ -824,7 +858,7 @@ export default function MainPage() {
                         name="startTime"
                         className="input"
                         required
-                        defaultValue={new Date(selectedTask.start_datetime).toLocaleTimeString('sv-SE', { timeZone: 'Asia/Tokyo' }).slice(0, 5)}
+                        defaultValue={new Date(selectedTask.start_datetime).toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', hour12: false })}
                         onChange={(e) => setStartTime(e.target.value)}
                       >
                         <option value="">選択してください</option>
@@ -840,7 +874,7 @@ export default function MainPage() {
                       <select
                         name="endTime"
                         className="input"
-                        defaultValue={selectedTask.end_datetime ? new Date(selectedTask.end_datetime).toLocaleTimeString('sv-SE', { timeZone: 'Asia/Tokyo' }).slice(0, 5) : ''}
+                        defaultValue={selectedTask.end_datetime ? new Date(selectedTask.end_datetime).toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', hour12: false }) : ''}
                         onChange={(e) => setEndTime(e.target.value)}
                       >
                         <option value="">選択してください</option>
@@ -1174,7 +1208,7 @@ export default function MainPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">担当者</label>
                     <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded-md">
-                      {user?.full_name || '担当者未設定'}
+                      {selectedTask.users?.full_name || '担当者未設定'}
                     </p>
                   </div>
                   <div>

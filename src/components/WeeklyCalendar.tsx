@@ -70,26 +70,25 @@ export function WeeklyCalendar({ schedules, onScheduleClick, onNewScheduleClick,
     setCurrentDate(new Date());
   };
   
-  // 指定日付の予定を取得
+  // 指定日付の予定を取得（日本時間基準で正確に比較）
   const getSchedulesForDate = (date: Date) => {
-    // 日本時間での日付比較を行う
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-    
+    // 比較対象の日付（日本時間）
+    const targetYear = date.getFullYear();
+    const targetMonth = date.getMonth();
+    const targetDay = date.getDate();
+
     return schedules.filter(task => {
-      // タスクの日時を日本時間で取得
-      const taskDateTime = new Date(task.start_datetime);
-      // UTCからJSTに変換（9時間プラス）
-      const jstTaskDateTime = new Date(taskDateTime.getTime() + (9 * 60 * 60 * 1000));
-      
-      const taskYear = jstTaskDateTime.getFullYear();
-      const taskMonth = String(jstTaskDateTime.getMonth() + 1).padStart(2, '0');
-      const taskDay = String(jstTaskDateTime.getDate()).padStart(2, '0');
-      const taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`;
-      
-      return taskDateStr === dateStr;
+      // タスクの開始日時を日本時間で取得
+      const taskDate = new Date(task.start_datetime);
+
+      // 日本時間での年、月、日を取得（toLocaleDateStringを使用）
+      const taskJST = new Date(taskDate.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+
+      return (
+        taskJST.getFullYear() === targetYear &&
+        taskJST.getMonth() === targetMonth &&
+        taskJST.getDate() === targetDay
+      );
     });
   };
   

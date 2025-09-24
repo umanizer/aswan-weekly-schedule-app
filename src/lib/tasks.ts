@@ -31,29 +31,90 @@ export const fetchTasksForWeek = async (startDate: Date, endDate: Date) => {
   }
 };
 
-// 全予定の取得
-export const fetchAllTasks = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('tasks')
-      .select(`
-        *,
-        users (
-          id,
-          full_name,
-          role
-        )
-      `)
-      .order('start_datetime', { ascending: true });
+// セッション確認付きでAPIトークンを取得
+const getValidatedSession = async () => {
+  const { data: { session }, error } = await supabase.auth.getSession();
 
-    if (error) {
-      throw error;
+  if (error || !session) {
+    console.log('No valid session, attempting refresh...');
+    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+
+    if (refreshError || !refreshData.session) {
+      throw new Error('認証セッションの取得・更新に失敗しました');
     }
 
-    return { data: data || [], error: null };
-  } catch (error) {
-    console.error('Error fetching all tasks:', error);
-    return { data: [], error: handleSupabaseError(error) };
+    console.log('Session refreshed for API call');
+    return refreshData.session;
+  }
+
+  // セッションが間もなく期限切れの場合、リフレッシュ
+  const expiresAt = session.expires_at || 0;
+  const now = Date.now() / 1000;
+  const timeLeft = expiresAt - now;
+
+  if (timeLeft < 300) { // 5分以内に期限切れの場合
+    console.log('Session expires soon, refreshing...');
+    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+
+    if (refreshError || !refreshData.session) {
+      console.log('Refresh failed, using existing session');
+      return session;
+    }
+
+    return refreshData.session;
+  }
+
+  return session;
+};
+
+// 全予定の取得（APIエンドポイント経由、セッション確認付き）
+export const fetchAllTasks = async () => {
+  console.log('=== fetchAllTasks via API ===');
+
+  try {
+    // セッションの確認とリフレッシュ
+    const session = await getValidatedSession();
+
+    const response = await fetch('/api/tasks', {
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log('API response status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.error('API error response:', errorData);
+
+      // 401エラーの場合、セッション問題の可能性
+      if (response.status === 401) {
+        throw new Error('認証エラー: ページを再読み込みしてください');
+      }
+
+      throw new Error(errorData.error || `API エラー (${response.status})`);
+    }
+
+    const responseData = await response.json();
+    console.log('Tasks fetched via API, count:', responseData.data?.length || 0);
+
+    // 各タスクのユーザー情報をチェック
+    if (responseData.data && responseData.data.length > 0) {
+      responseData.data.forEach((task: any, index: number) => {
+        console.log(`Task ${index + 1}:`, {
+          id: task.id,
+          customer_name: task.customer_name,
+          user_id: task.user_id,
+          users: task.users
+        });
+      });
+    }
+
+    return { data: responseData.data || [], error: null };
+  } catch (error: any) {
+    console.error('Error in fetchAllTasks:', error);
+    return { data: [], error: error.message };
   }
 };
 
@@ -195,13 +256,18 @@ export const getTasksStats = async (startDate: Date, endDate: Date) => {
 // 特定日付のM便予定を取得（時間重複チェック用）
 export const fetchMBinTasksForDate = async (date: Date, excludeTaskId?: number) => {
   try {
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+    // 日本時間での日付範囲を作成
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
 
-    const startISO = startOfDay.toISOString();
-    const endISO = endOfDay.toISOString();
+    // 日本時間での開始・終了時刻を作成
+    const startOfDay = new Date(year, month, day, 0, 0, 0, 0);
+    const endOfDay = new Date(year, month, day, 23, 59, 59, 999);
+
+    // 日本時間（JST）からUTCに変換してISO文字列に
+    const startISO = new Date(startOfDay.getTime() - (9 * 60 * 60 * 1000)).toISOString();
+    const endISO = new Date(endOfDay.getTime() - (9 * 60 * 60 * 1000)).toISOString();
 
     let query = supabase
       .from('tasks')
