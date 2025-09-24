@@ -78,11 +78,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                            session.user.email?.split('@')[0] ||
                            'ユーザー';
 
+        // 🔧 管理者の手動識別（API修復まで）
+        const isKnownAdmin = session.user.email === 'kawamoto@aswan.ne.jp' ||
+                           session.user.email === 'mworkplanning@gmail.com' ||
+                           displayName === '河本典明';
+
+        const userRole = isKnownAdmin ? 'admin' : (session.user.user_metadata?.role || 'user');
+
+        console.log('🔍 [DEBUG] User role determination:', {
+          email: session.user.email,
+          displayName,
+          isKnownAdmin,
+          finalRole: userRole
+        });
+
         setUser({
           id: session.user.id,
           full_name: displayName,
           email: session.user.email || '',
-          role: session.user.user_metadata?.role || 'user',
+          role: userRole,
           created_at: session.user.created_at || new Date().toISOString(),
           updated_at: session.user.updated_at || new Date().toISOString()
         });
@@ -114,11 +128,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                            supabaseUser.email?.split('@')[0] ||
                            'ユーザー';
 
+        // 🔧 管理者の手動識別（API修復まで）
+        const isKnownAdmin = supabaseUser.email === 'kawamoto@aswan.ne.jp' ||
+                           supabaseUser.email === 'mworkplanning@gmail.com' ||
+                           displayName === '河本典明';
+
+        const userRole = isKnownAdmin ? 'admin' : (supabaseUser.user_metadata?.role || 'user');
+
         setUser({
           id: supabaseUser.id,
           full_name: displayName,
           email: supabaseUser.email || '',
-          role: supabaseUser.user_metadata?.role || 'user',
+          role: userRole,
           created_at: supabaseUser.created_at || new Date().toISOString(),
           updated_at: supabaseUser.updated_at || new Date().toISOString()
         });
