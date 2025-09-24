@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // タイムアウトを追加
-      const timeoutPromise = new Promise((_, reject) =>
+      const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Request timeout')), 10000)
       );
 
