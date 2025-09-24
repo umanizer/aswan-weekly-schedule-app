@@ -205,11 +205,9 @@ export default function MainPage() {
     }
   };
 
-  // 権限チェック（DB接続問題により一時的に全許可）
+  // 権限チェック
   const canEditTask = (task: Task) => {
-    // 🔧 DB接続問題のため一時的に全ユーザーに編集権限を付与
-    return true;
-    // return isAdmin || task.users?.full_name === user?.full_name;
+    return isAdmin || task.users?.full_name === user?.full_name;
   };
 
   const handleTaskClick = (task: Task) => {

@@ -152,54 +152,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('🔍 [DEBUG] Starting fetchUserProfile for:', userId);
 
-      // 🔧 DB接続テスト
+      // 🔧 APIエンドポイント経由での安全なプロファイル取得
       try {
-        console.log('🔍 [DEBUG] Testing DB connection via API...');
-        const testResponse = await fetch('/api/test-db', {
-          headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+        console.log('🔍 [DEBUG] Fetching profile via API endpoint...');
 
-        if (testResponse.ok) {
-          const testData = await testResponse.json();
-          console.log('🔍 [DEBUG] DB Test Results:', testData);
-
-          // テスト結果に基づいて処理を決定
-          const userLookupTest = testData.tests.find((t: any) => t.name === 'Authenticated User Lookup');
-          if (userLookupTest && userLookupTest.success && userLookupTest.userData) {
-            console.log('🔍 [DEBUG] Using DB data from test:', userLookupTest.userData);
-            setUser({
-              id: userLookupTest.userData.id,
-              full_name: userLookupTest.userData.full_name,
-              email: userLookupTest.userData.email || '',
-              role: userLookupTest.userData.role,
-              created_at: userLookupTest.userData.created_at || new Date().toISOString(),
-              updated_at: userLookupTest.userData.updated_at || new Date().toISOString()
-            });
-            setLoading(false);
-            return;
-          }
+        const session = await supabase.auth.getSession();
+        if (!session.data.session) {
+          console.log('🔍 [DEBUG] No session for profile fetch');
+          throw new Error('No session');
         }
 
-        console.log('🔍 [DEBUG] DB test failed or no data, falling back to auth data');
-      } catch (testError) {
-        console.log('🔍 [DEBUG] DB test error:', testError);
-      }
-
-      // 🔧 代替案：APIエンドポイント経由でユーザー情報取得
-      try {
         const response = await fetch('/api/users/profile', {
           headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Authorization': `Bearer ${session.data.session.access_token}`,
             'Content-Type': 'application/json',
           },
         });
 
         if (response.ok) {
           const userData = await response.json();
-          console.log('🔍 [DEBUG] User profile loaded via API:', userData.full_name);
+          console.log('🔍 [DEBUG] Profile loaded via API:', userData.full_name, userData.role);
           setUser({
             id: userData.id,
             full_name: userData.full_name,
@@ -212,9 +184,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        console.log('🔍 [DEBUG] API profile fetch failed, falling back to direct query');
+        console.log('🔍 [DEBUG] API profile fetch failed, response:', response.status);
+        throw new Error(`API failed: ${response.status}`);
       } catch (apiError) {
-        console.log('🔍 [DEBUG] API approach failed, using direct database query');
+        console.log('🔍 [DEBUG] API approach failed:', apiError);
       }
 
       // セッションの有効性を確認
