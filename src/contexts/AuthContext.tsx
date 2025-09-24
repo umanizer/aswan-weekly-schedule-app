@@ -69,8 +69,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Setting user from auth state change');
         setSupabaseUser(session.user);
 
-        // 🔧 安全な基本認証データのみ使用（DBアクセス問題のため）
-        console.log('🔍 [DEBUG] Using basic auth data safely');
+        // 🔧 APIエンドポイント経由での安全なプロファイル取得を試行
+        console.log('🔍 [DEBUG] Trying to fetch profile via API...');
+        try {
+          const response = await fetch('/api/users/profile', {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            const userData = await response.json();
+            console.log('🔍 [DEBUG] Profile loaded via API:', userData.full_name, userData.role);
+            setUser({
+              id: userData.id,
+              full_name: userData.full_name,
+              email: userData.email,
+              role: userData.role,
+              created_at: userData.created_at,
+              updated_at: userData.updated_at
+            });
+            setLoading(false);
+            return;
+          } else {
+            console.log('🔍 [DEBUG] API profile fetch failed, falling back to auth data');
+          }
+        } catch (apiError) {
+          console.log('🔍 [DEBUG] API approach failed, falling back to auth data:', apiError);
+        }
+
+        // フォールバック: 基本認証データのみ使用
+        console.log('🔍 [DEBUG] Using basic auth data as fallback');
 
         // メタデータまたはemailから表示名を決定
         let displayName = session.user.user_metadata?.full_name ||
@@ -89,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const userRole = isKnownAdmin ? 'admin' : (session.user.user_metadata?.role || 'user');
 
-        console.log('🔍 [DEBUG] User role determination:', {
+        console.log('🔍 [DEBUG] User role determination (fallback):', {
           email: session.user.email,
           displayName,
           isKnownAdmin,
@@ -123,10 +153,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('🔍 [DEBUG] getUser result:', supabaseUser ? 'User found' : 'No user');
 
       if (supabaseUser) {
-        console.log('🔍 [DEBUG] Setting supabase user - using basic auth data');
+        console.log('🔍 [DEBUG] Setting supabase user - trying API first');
         setSupabaseUser(supabaseUser);
 
-        // 🔧 安全な基本認証データのみ使用（DBアクセス問題のため）
+        // 🔧 APIエンドポイント経由での安全なプロファイル取得を試行
+        try {
+          const session = await supabase.auth.getSession();
+          if (session.data.session) {
+            const response = await fetch('/api/users/profile', {
+              headers: {
+                'Authorization': `Bearer ${session.data.session.access_token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (response.ok) {
+              const userData = await response.json();
+              console.log('🔍 [DEBUG] Initial profile loaded via API:', userData.full_name, userData.role);
+              setUser({
+                id: userData.id,
+                full_name: userData.full_name,
+                email: userData.email,
+                role: userData.role,
+                created_at: userData.created_at,
+                updated_at: userData.updated_at
+              });
+              setLoading(false);
+              return;
+            } else {
+              console.log('🔍 [DEBUG] Initial API profile fetch failed, falling back to auth data');
+            }
+          }
+        } catch (apiError) {
+          console.log('🔍 [DEBUG] Initial API approach failed, falling back to auth data:', apiError);
+        }
+
+        // フォールバック: 基本認証データのみ使用
+        console.log('🔍 [DEBUG] Using basic auth data as fallback');
+
         let displayName = supabaseUser.user_metadata?.full_name ||
                          supabaseUser.user_metadata?.name ||
                          supabaseUser.email?.split('@')[0] ||
@@ -152,7 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           updated_at: supabaseUser.updated_at || new Date().toISOString()
         });
 
-        console.log('🔍 [DEBUG] User profile set from auth data:', displayName);
+        console.log('🔍 [DEBUG] User profile set from auth data (fallback):', displayName);
         setLoading(false);
       } else {
         console.log('🔍 [DEBUG] No user found, setting loading to false');
