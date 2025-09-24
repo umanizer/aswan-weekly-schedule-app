@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     console.log('Test 2: Normal client without auth (should timeout)');
     const start2 = Date.now();
 
-    const timeoutPromise = new Promise((_, reject) =>
+    const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Normal client timeout (3s)')), 3000)
     );
 

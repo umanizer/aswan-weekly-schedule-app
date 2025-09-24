@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     let directQueryError = null;
 
     try {
-      const timeoutPromise = new Promise((_, reject) =>
+      const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Direct query timeout')), 3000)
       );
 
