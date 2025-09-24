@@ -79,8 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                            'ユーザー';
 
         // 🔧 管理者の手動識別（API修復まで）
-        const isKnownAdmin = session.user.email === 'kawamoto@aswan.ne.jp' ||
-                           session.user.email === 'mworkplanning@gmail.com' ||
+        const isKnownAdmin = session.user.email === 'mworkplanning@yahoo.co.jp' ||
                            displayName === '河本典明';
 
         const userRole = isKnownAdmin ? 'admin' : (session.user.user_metadata?.role || 'user');
@@ -129,8 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                            'ユーザー';
 
         // 🔧 管理者の手動識別（API修復まで）
-        const isKnownAdmin = supabaseUser.email === 'kawamoto@aswan.ne.jp' ||
-                           supabaseUser.email === 'mworkplanning@gmail.com' ||
+        const isKnownAdmin = supabaseUser.email === 'mworkplanning@yahoo.co.jp' ||
                            displayName === '河本典明';
 
         const userRole = isKnownAdmin ? 'admin' : (supabaseUser.user_metadata?.role || 'user');
