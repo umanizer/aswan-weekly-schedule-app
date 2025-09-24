@@ -72,23 +72,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const getInitialUser = async () => {
+    console.log('🔍 [DEBUG] Starting getInitialUser...');
     try {
+      console.log('🔍 [DEBUG] Calling supabase.auth.getUser()...');
       const { data: { user: supabaseUser } } = await supabase.auth.getUser();
-      
+      console.log('🔍 [DEBUG] getUser result:', supabaseUser ? 'User found' : 'No user');
+
       if (supabaseUser) {
+        console.log('🔍 [DEBUG] Setting supabase user and fetching profile...');
         setSupabaseUser(supabaseUser);
         await fetchUserProfile(supabaseUser.id);
+      } else {
+        console.log('🔍 [DEBUG] No user found, setting loading to false');
+        setLoading(false);
       }
     } catch (error) {
-      console.error('Error getting initial user:', error);
-    } finally {
+      console.error('🔍 [DEBUG] Error in getInitialUser:', error);
       setLoading(false);
     }
   };
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      console.log('Fetching user profile for:', userId);
+      console.log('🔍 [DEBUG] Starting fetchUserProfile for:', userId);
 
       // セッションの有効性を確認
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -132,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data) {
-        console.log('User profile loaded:', data.full_name);
+        console.log('🔍 [DEBUG] User profile loaded successfully:', data.full_name);
         setUser({
           id: data.id,
           full_name: data.full_name,
@@ -141,6 +147,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           created_at: data.created_at,
           updated_at: data.updated_at
         });
+        console.log('🔍 [DEBUG] Setting loading to false after successful profile load');
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
