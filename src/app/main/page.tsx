@@ -205,9 +205,11 @@ export default function MainPage() {
     }
   };
 
-  // 権限チェック
+  // 権限チェック（一時的に緩和）
   const canEditTask = (task: Task) => {
-    return isAdmin || task.users?.full_name === user?.full_name;
+    // 🔧 一時的に全ユーザーに編集権限を付与（プロファイル機能復旧まで）
+    return true;
+    // return isAdmin || task.users?.full_name === user?.full_name;
   };
 
   const handleTaskClick = (task: Task) => {
