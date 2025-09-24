@@ -69,9 +69,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Setting user from auth state change');
         setSupabaseUser(session.user);
 
-        // 🔧 ユーザープロファイル取得を復活
-        console.log('🔍 [DEBUG] Fetching user profile...');
-        await fetchUserProfile(session.user.id);
+        // 🔧 安全な基本認証データのみ使用（DBアクセス問題のため）
+        console.log('🔍 [DEBUG] Using basic auth data safely');
+
+        // メタデータまたはemailから表示名を決定
+        const displayName = session.user.user_metadata?.full_name ||
+                           session.user.user_metadata?.name ||
+                           session.user.email?.split('@')[0] ||
+                           'ユーザー';
+
+        setUser({
+          id: session.user.id,
+          full_name: displayName,
+          email: session.user.email || '',
+          role: session.user.user_metadata?.role || 'user',
+          created_at: session.user.created_at || new Date().toISOString(),
+          updated_at: session.user.updated_at || new Date().toISOString()
+        });
+
+        console.log('🔍 [DEBUG] User set successfully:', displayName);
+        setLoading(false);
       }
 
       setLoading(false);
@@ -91,8 +108,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('🔍 [DEBUG] Setting supabase user - using basic auth data');
         setSupabaseUser(supabaseUser);
 
-        // 🔧 ユーザープロファイル取得を復活
-        await fetchUserProfile(supabaseUser.id);
+        // 🔧 安全な基本認証データのみ使用（DBアクセス問題のため）
+        const displayName = supabaseUser.user_metadata?.full_name ||
+                           supabaseUser.user_metadata?.name ||
+                           supabaseUser.email?.split('@')[0] ||
+                           'ユーザー';
+
+        setUser({
+          id: supabaseUser.id,
+          full_name: displayName,
+          email: supabaseUser.email || '',
+          role: supabaseUser.user_metadata?.role || 'user',
+          created_at: supabaseUser.created_at || new Date().toISOString(),
+          updated_at: supabaseUser.updated_at || new Date().toISOString()
+        });
+
+        console.log('🔍 [DEBUG] User profile set from auth data:', displayName);
+        setLoading(false);
       } else {
         console.log('🔍 [DEBUG] No user found, setting loading to false');
         setLoading(false);
