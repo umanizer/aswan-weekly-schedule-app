@@ -53,8 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setLoading(false);
 
-        // 強制的にログイン画面にリダイレクト
-        if (typeof window !== 'undefined') {
+        // ログインページでなければリダイレクト
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
           console.log('🔍 [DEBUG] Redirecting to login due to session expired');
           window.location.href = '/login';
         }
@@ -89,11 +89,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSupabaseUser(supabaseUser);
         await fetchUserProfile(supabaseUser.id);
       } else {
-        console.log('🔍 [DEBUG] No user found, setting loading to false and redirecting to login');
+        console.log('🔍 [DEBUG] No user found, setting loading to false');
         setLoading(false);
 
-        // ユーザーがいない場合はログインページにリダイレクト
-        if (typeof window !== 'undefined') {
+        // ログインページでなければリダイレクト
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          console.log('🔍 [DEBUG] Redirecting to login - not on login page');
           window.location.href = '/login';
         }
       }
@@ -105,6 +106,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      // ログインページでは処理をスキップ
+      if (typeof window !== 'undefined' && window.location.pathname.includes('/login')) {
+        console.log('🔍 [DEBUG] Skipping fetchUserProfile on login page');
+        setLoading(false);
+        return;
+      }
+
       console.log('🔍 [DEBUG] Starting fetchUserProfile for:', userId);
 
       // セッションの有効性を確認
