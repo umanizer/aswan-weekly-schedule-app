@@ -205,6 +205,35 @@ export default function MainPage() {
     }
   };
 
+  // 依頼書作成処理
+  const handleCreateWorkRequest = async (task: Task) => {
+    if (!task || !user) {
+      alert('エラー: 予定または ユーザー情報が見つかりません。');
+      return;
+    }
+
+    // 作成確認
+    if (!confirm('この予定から作業依頼書を作成しますか？')) {
+      return;
+    }
+
+    try {
+      console.log('Creating work request for task:', task.id);
+
+      // TODO: ここで依頼書作成フォームを表示する
+      // 現在は簡単なアラートで代替
+      alert('依頼書作成機能は開発中です。\n\n予定情報:\n' +
+            `- 得意先: ${task.customer_name}\n` +
+            `- 現場名: ${task.site_name}\n` +
+            `- 日時: ${new Date(task.start_datetime).toLocaleDateString('ja-JP')}\n` +
+            `- 担当者: ${user.full_name}`);
+
+    } catch (error) {
+      console.error('Error creating work request:', error);
+      alert('依頼書の作成中にエラーが発生しました。');
+    }
+  };
+
   // 権限チェック
   const canEditTask = (task: Task) => {
     console.log('🔍 Edit check:', {
@@ -1309,11 +1338,18 @@ export default function MainPage() {
                   </Button>
                   {canEditTask(selectedTask) && (
                     <>
+                      <Button
+                        variant="primary"
+                        onClick={() => handleCreateWorkRequest(selectedTask)}
+                        className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                      >
+                        📋 依頼書作成
+                      </Button>
                       <Button variant="primary" onClick={handleEditTask}>
                         編集
                       </Button>
-                      <Button 
-                        variant="danger" 
+                      <Button
+                        variant="danger"
                         onClick={() => {
                           if (confirm('この予定を削除しますか？')) {
                             handleDeleteTask();
