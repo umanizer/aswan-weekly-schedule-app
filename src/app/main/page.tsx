@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/MainLayout';
 import { WeeklyCalendar } from '@/components/WeeklyCalendar';
 import { Modal, Input, Button } from '@/components/ui';
+import WorkRequestModal, { WorkRequestFormData } from '@/components/WorkRequestModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Task } from '@/lib/supabase';
@@ -176,6 +177,7 @@ export default function MainPage() {
   };
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
+  const [isWorkRequestModalOpen, setIsWorkRequestModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [hasPartTimer, setHasPartTimer] = useState(false);
   const [partTimerCount, setPartTimerCount] = useState<number>(1);
@@ -208,25 +210,60 @@ export default function MainPage() {
   // 依頼書作成処理
   const handleCreateWorkRequest = async (task: Task) => {
     if (!task || !user) {
-      alert('エラー: 予定または ユーザー情報が見つかりません。');
+      alert('エラー: 予定またはユーザー情報が見つかりません。');
       return;
     }
 
-    // 作成確認
-    if (!confirm('この予定から作業依頼書を作成しますか？')) {
+    // 依頼書作成モーダルを開く
+    setIsWorkRequestModalOpen(true);
+  };
+
+  // 依頼書作成フォーム送信処理
+  const handleWorkRequestSubmit = async (formData: WorkRequestFormData) => {
+    if (!selectedTask || !user) {
+      alert('エラー: 予定またはユーザー情報が見つかりません。');
       return;
     }
 
     try {
-      console.log('Creating work request for task:', task.id);
+      console.log('Creating work request with data:', formData);
 
-      // TODO: ここで依頼書作成フォームを表示する
-      // 現在は簡単なアラートで代替
-      alert('依頼書作成機能は開発中です。\n\n予定情報:\n' +
-            `- 得意先: ${task.customer_name}\n` +
-            `- 現場名: ${task.site_name}\n` +
-            `- 日時: ${new Date(task.start_datetime).toLocaleDateString('ja-JP')}\n` +
-            `- 担当者: ${user.full_name}`);
+      // APIエンドポイントに依頼書データを送信
+      const response = await fetch('/api/work-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          task_id: selectedTask.id,
+          user_id: user.id,
+          meeting_time: formData.meeting_time,
+          meeting_place: formData.meeting_place,
+          customer_contact_person: formData.customer_contact_person,
+          customer_phone: formData.customer_phone,
+          work_content: formData.work_content,
+          equipment: formData.equipment,
+          cart_count: formData.cart_count,
+          abacus_count: formData.abacus_count,
+          material_loading: formData.material_loading,
+          additional_remarks: formData.additional_remarks,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('依頼書の作成に失敗しました。');
+      }
+
+      const workRequest = await response.json();
+      console.log('Work request created:', workRequest);
+
+      // 成功メッセージ
+      alert('依頼書を作成しました！\n\n次の手順:\n1. PDF生成機能を実装中です\n2. しばらくお待ちください');
+
+      // モーダルを閉じる
+      setIsWorkRequestModalOpen(false);
+
+      // TODO: PDF生成処理を実装
 
     } catch (error) {
       console.error('Error creating work request:', error);
@@ -1701,6 +1738,14 @@ export default function MainPage() {
           </div>
         </form>
       </Modal>
+
+      {/* 依頼書作成モーダル */}
+      <WorkRequestModal
+        isOpen={isWorkRequestModalOpen}
+        onClose={() => setIsWorkRequestModalOpen(false)}
+        task={selectedTask}
+        onSubmit={handleWorkRequestSubmit}
+      />
     </MainLayout>
   );
 }
